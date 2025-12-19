@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>タイルメモ｜ 爆速メモ管理</title>
+    <meta name="description" content="直感的なグリッドレイアウトで情報を整理。ログイン不要、ブラウザ完結のミニマルなメモ帳。">
+
+    <link rel="icon" type="image/png" href="images/favicon.png">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        textarea {
+            overflow: hidden;
+            transition: all 0.2s ease;
+        }
+
+        .memo-card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .memo-card:focus-within {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 20px -5px rgb(0 0 0 / 0.1);
+            border-color: #94a3b8;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-in {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+
+        .title-container {
+            transition: max-height 0.3s ease, opacity 0.2s ease;
+            overflow: hidden;
+        }
+
+        .title-hidden {
+            max-height: 0;
+            opacity: 0;
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 min-h-screen p-4 md:p-8 font-sans text-slate-900 selection:bg-blue-100">
+
+    <div id="app" class="max-w-7xl mx-auto">
+        <header class="mb-10 text-center">
+            <a href="#" class="inline-flex flex-col items-center group">
+                <h1
+                    class="text-3xl font-extrabold text-slate-800 flex items-center gap-3 group-hover:text-blue-600 transition-colors">
+                    <i data-lucide="zap" class="text-yellow-500 fill-yellow-500"></i> タイルメモ
+                </h1>
+                <p class="mt-2 text-slate-400 text-sm font-medium tracking-wide">
+                    GRID MEMO PALETTE
+                </p>
+            </a>
+            <p class="mt-6 text-slate-600 text-sm leading-relaxed">
+                書いて消せるタイルメモ。<br class="hidden md:block">
+                データはブラウザにのみ保存されます。
+            </p>
+        </header>
+
+        <div class="flex justify-between mb-8 gap-3 max-w-2xl mx-auto">
+            <button onclick="addMemo()"
+                class="flex-[2] bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-6 rounded-2xl shadow-lg shadow-blue-200 flex items-center justify-center gap-2 transition-all active:scale-95">
+                <i data-lucide="plus-circle" size="22"></i> メモを追加
+            </button>
+            <button onclick="clearAll()"
+                class="flex-1 bg-white hover:bg-slate-50 text-slate-400 font-semibold py-4 px-6 border border-slate-200 rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-95 text-sm">
+                <i data-lucide="trash-2" size="18"></i> 全消去
+            </button>
+        </div>
+
+        <div id="memo-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"></div>
+
+        <footer class="mt-24 border-t border-slate-200 pt-12 pb-16 text-slate-500 text-[11px] leading-relaxed">
+            <div class="flex flex-col items-center mb-12">
+                <a href="#" class="group flex flex-col items-center transition-transform hover:-translate-y-1">
+                    <div class="flex items-center gap-3 mb-4">
+                        <img src="images/favicon.png" alt="NomuTools Logo"
+                            class="w-8 h-8 rounded-lg shadow-sm grayscale group-hover:grayscale-0 transition-all duration-500">
+                        <div class="text-left">
+                            <span
+                                class="block text-slate-800 font-bold text-sm tracking-tighter group-hover:text-blue-600 transition-colors">NomuTools</span>
+                            <span class="block text-slate-400 text-[10px]">Simple & Lightweight Utilities.</span>
+                        </div>
+                    </div>
+                    <p class="text-center max-w-sm opacity-70 group-hover:opacity-100 transition-opacity">
+                        「削ぎ落とした、最高の使い心地を」<br>
+                        NomuToolsは、日々のデジタル作業をほんの少し速くする、ミニマルなツール群を展開しています。
+                    </p>
+                </a>
+            </div>
+
+            <div
+                class="grid grid-cols-1 md:grid-cols-2 gap-8 text-left border-t border-slate-100 pt-8 max-w-2xl mx-auto">
+                <div>
+                    <h2 class="font-bold text-slate-700 mb-2 italic tracking-wider">Security</h2>
+                    <p class="text-red-400 font-bold mb-2">個人情報や暗証番号は絶対に入力しないでください。</p>
+                    <p>データはブラウザ（LocalStorage）にのみ保存され、サーバーへ送信されることはありません。管理は自己責任でお願いいたします。</p>
+                </div>
+                <div>
+                    <h2 class="font-bold text-slate-700 mb-2 italic tracking-wider">Support</h2>
+                    <p>キャッシュ消去等によりデータが消失しても復旧はできません。本ツールの利用により生じた損害について、開発者は一切の責任を負いません。</p>
+                </div>
+            </div>
+
+            <div class="mt-12 text-center opacity-30 tracking-widest uppercase font-light">
+                &copy; 2025 NomuTools
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // デフォルトの初期値を「白紙のメモ1個」に変更
+        let memos = JSON.parse(localStorage.getItem('tile-memo-data')) || [
+            { id: Date.now(), title: '', text: '', titleVisible: true }
+        ];
+
+        function save() {
+            localStorage.setItem('tile-memo-data', JSON.stringify(memos));
+        }
+
+        function autoResize(el) {
+            el.style.height = 'auto';
+            el.style.height = el.scrollHeight + 'px';
+        }
+
+        function render() {
+            const container = document.getElementById('memo-container');
+            container.innerHTML = '';
+
+            memos.forEach((m) => {
+                const div = document.createElement('div');
+                div.className = "memo-card animate-in bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden";
+                div.innerHTML = `
+                    <div class="title-container ${m.titleVisible ? '' : 'title-hidden'} bg-slate-50 border-b border-slate-100 px-5 py-3 flex items-center justify-between">
+                        <input 
+                            type="text" 
+                            value="${m.title}" 
+                            oninput="updateMemo(${m.id}, 'title', this.value)"
+                            placeholder="タイトル..."
+                            class="bg-transparent font-extrabold text-slate-800 focus:outline-none text-sm w-full"
+                        >
+                        <button onclick="toggleTitle(${m.id})" class="text-slate-300 hover:text-blue-500 transition-colors p-1 ml-2" title="タイトルを非表示">
+                            <i data-lucide="eye-off" size="14"></i>
+                        </button>
+                    </div>
+                    <div class="p-5 flex-1 flex flex-col relative group">
+                        <textarea 
+                            oninput="updateMemo(${m.id}, 'text', this.value); autoResize(this)"
+                            class="w-full flex-1 bg-transparent focus:outline-none text-slate-600 leading-relaxed placeholder:text-slate-200 resize-none text-sm" 
+                            placeholder="メモを入力..."
+                        >${m.text}</textarea>
+                        
+                        <div class="flex justify-between items-center mt-4 pt-4 border-t border-dashed border-slate-100 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onclick="toggleTitle(${m.id})" class="text-[10px] font-bold text-slate-300 hover:text-blue-500 uppercase tracking-tighter">
+                                ${m.titleVisible ? 'Title: ON' : 'Title: OFF (Click to show)'}
+                            </button>
+                            <button onclick="removeMemo(${m.id})" class="text-slate-300 hover:text-red-400 transition-colors" title="削除">
+                                <i data-lucide="trash-2" size="16"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(div);
+                autoResize(div.querySelector('textarea'));
+            });
+            lucide.createIcons();
+        }
+
+        function addMemo() {
+            const newId = Date.now();
+            memos.push({ id: newId, title: '', text: '', titleVisible: true });
+            render();
+            save();
+            // 追加したメモにフォーカス
+            const cards = document.querySelectorAll('.memo-card');
+            cards[cards.length - 1].querySelector('textarea').focus();
+        }
+
+        function removeMemo(id) {
+            if (confirm('このメモを削除しますか？')) {
+                memos = memos.filter(m => m.id !== id);
+                render();
+                save();
+            }
+        }
+
+        function toggleTitle(id) {
+            const memo = memos.find(m => m.id === id);
+            if (memo) {
+                memo.titleVisible = !memo.titleVisible;
+                render();
+                save();
+            }
+        }
+
+        function updateMemo(id, field, val) {
+            const target = memos.find(m => m.id === id);
+            if (target) target[field] = val;
+            save();
+        }
+
+        function clearAll() {
+            if (confirm('全てのメモを消去しますか？')) {
+                memos = [];
+                render();
+                save();
+            }
+        }
+
+        render();
+    </script>
+</body>
+
+</html>
