@@ -200,11 +200,9 @@
         }
 
         function removeMemo(id) {
-            if (confirm('このメモを削除しますか？')) {
-                memos = memos.filter(m => m.id !== id);
-                render();
-                save();
-            }
+            memos = memos.filter(m => m.id !== id);
+            render();
+            save();
         }
 
         function toggleTitle(id) {
